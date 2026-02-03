@@ -184,6 +184,7 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
 
         # Track which devices were found in this scan
         found_identifiers: set[str] = set()
+        devices_needing_hostname: list[DeviceInfo] = []
 
         for device in discovered:
             identifier = device.identifier
@@ -214,6 +215,9 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
                 existing.failed_checks = 0
                 # Ensure device is accessible by current identifier (MAC if known)
                 self._devices[existing.identifier] = existing
+                # Try to resolve hostname if still missing
+                if not existing.hostname:
+                    devices_needing_hostname.append(existing)
             else:
                 # New device
                 self._devices[identifier] = device
@@ -227,6 +231,22 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
         for identifier, device in self._devices.items():
             if identifier not in found_identifiers:
                 self._handle_device_not_responding(device)
+
+        # Retry hostname resolution for devices without hostnames
+        if devices_needing_hostname:
+            _LOGGER.debug(
+                "Retrying hostname resolution for %d devices",
+                len(devices_needing_hostname),
+            )
+            for device in devices_needing_hostname:
+                hostname = await self._scanner._resolve_hostname(device.ip_address)
+                if hostname:
+                    device.hostname = hostname
+                    _LOGGER.info(
+                        "Resolved hostname for %s: %s",
+                        device.ip_address,
+                        hostname,
+                    )
 
     async def _do_quick_check(self) -> None:
         """Perform a quick check of known online devices."""

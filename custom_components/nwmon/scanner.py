@@ -173,10 +173,11 @@ class NetworkScanner:
             _LOGGER.debug("Failed to run arp command: %s", err)
 
     async def _resolve_hostname(self, ip: str) -> str | None:
-        """Resolve hostname for IP address."""
+        """Resolve hostname for IP address via reverse DNS lookup."""
         try:
             result = await asyncio.to_thread(socket.gethostbyaddr, ip)
             hostname = result[0]
+            _LOGGER.debug("Resolved %s -> %s", ip, hostname)
             # Remove domain if present, keep just the hostname
             if "." in hostname:
                 # Check if it looks like a domain name vs IP-based name
@@ -184,7 +185,8 @@ class NetworkScanner:
                 if not all(p.isdigit() for p in parts):
                     hostname = parts[0]
             return hostname
-        except (socket.herror, socket.gaierror, OSError):
+        except (socket.herror, socket.gaierror, OSError) as err:
+            _LOGGER.debug("Could not resolve hostname for %s: %s", ip, err)
             return None
 
     async def _resolve_vendor(self, mac: str) -> str | None:
