@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -154,7 +154,7 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
     async def _do_full_scan(self) -> None:
         """Perform a full network scan."""
         _LOGGER.info("Performing full network scan")
-        self._last_full_scan = datetime.now()
+        self._last_full_scan = datetime.now(timezone.utc)
 
         discovered = await self._scanner.full_scan()
 

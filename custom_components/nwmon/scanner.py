@@ -190,7 +190,7 @@ class NetworkScanner:
             return None
 
         try:
-            return await asyncio.to_thread(lookup.lookup, mac)
+            return await lookup.lookup(mac)
         except Exception:
             return None
 
