@@ -29,6 +29,12 @@ async def async_setup_entry(
     """Set up summary sensors."""
     coordinator = entry.runtime_data
 
+    _LOGGER.debug(
+        "Setting up sensors: coordinator has %d devices, last_update_success=%s",
+        len(coordinator.devices),
+        coordinator.last_update_success,
+    )
+
     async_add_entities(
         [
             DevicesOnlineSensor(coordinator, entry.entry_id),

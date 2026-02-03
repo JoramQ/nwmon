@@ -45,14 +45,23 @@ async def async_setup_entry(
         """Add entities for newly discovered devices."""
         new_entities: list[DeviceBinarySensor] = []
 
+        _LOGGER.debug(
+            "async_add_new_devices called: %d devices in coordinator, %d known entities, last_update_success=%s",
+            len(coordinator.devices),
+            len(known_entities),
+            coordinator.last_update_success,
+        )
+
         for identifier, device in coordinator.devices.items():
             if identifier not in known_entities:
+                _LOGGER.debug("Creating entity for device: %s (%s)", identifier, device.display_name)
                 known_entities.add(identifier)
                 new_entities.append(
                     DeviceBinarySensor(coordinator, entry.entry_id, device)
                 )
 
         if new_entities:
+            _LOGGER.info("Adding %d new device entities", len(new_entities))
             async_add_entities(new_entities)
 
     # Add initial devices

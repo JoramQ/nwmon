@@ -99,7 +99,9 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
 
     async def async_load_devices(self) -> None:
         """Load devices from persistent storage."""
+        _LOGGER.debug("Loading devices from storage")
         data = await self._store.async_load()
+        _LOGGER.debug("Storage data: %s", "present" if data else "empty")
         if data and "devices" in data:
             for device_data in data["devices"]:
                 try:
@@ -142,16 +144,32 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
     async def _async_update_data(self) -> dict[str, DeviceInfo]:
         """Fetch data from network."""
         self._update_count += 1
+        _LOGGER.debug(
+            "Update #%d starting (devices: %d, full_scan: %s)",
+            self._update_count,
+            len(self._devices),
+            self._should_full_scan(),
+        )
 
-        if self._should_full_scan():
-            await self._do_full_scan()
-        else:
-            await self._do_quick_check()
+        try:
+            if self._should_full_scan():
+                await self._do_full_scan()
+            else:
+                await self._do_quick_check()
 
-        # Save to persistent storage
-        await self._async_save_devices()
+            # Save to persistent storage
+            await self._async_save_devices()
 
-        return self._devices
+            _LOGGER.debug(
+                "Update #%d complete (devices: %d, online: %d)",
+                self._update_count,
+                len(self._devices),
+                len(self.online_devices),
+            )
+            return self._devices
+        except Exception as err:
+            _LOGGER.error("Update #%d failed: %s", self._update_count, err, exc_info=True)
+            raise
 
     async def _do_full_scan(self) -> None:
         """Perform a full network scan."""

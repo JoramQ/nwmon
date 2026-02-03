@@ -16,13 +16,20 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Network Monitor from a config entry."""
+    _LOGGER.debug("Setting up Network Monitor integration")
     coordinator = NetworkMonitorCoordinator(hass, entry)
 
     # Load stored device data
     await coordinator.async_load_devices()
+    _LOGGER.debug("After load: %d devices", len(coordinator.devices))
 
     # Perform initial refresh
     await coordinator.async_config_entry_first_refresh()
+    _LOGGER.debug(
+        "After first refresh: %d devices, last_update_success=%s",
+        len(coordinator.devices),
+        coordinator.last_update_success,
+    )
 
     # Store coordinator in runtime data
     entry.runtime_data = coordinator
