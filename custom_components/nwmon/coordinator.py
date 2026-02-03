@@ -64,6 +64,7 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
         self._devices: dict[str, DeviceInfo] = {}
         self._last_full_scan: datetime | None = None
         self._update_count = 0
+        self._needs_initial_scan = True  # Always full scan on first update after startup
 
         # Calculate when to do full scans (every N quick checks)
         full_scan_minutes = self._full_scan_interval.total_seconds() / 60
@@ -124,8 +125,10 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
 
     async def _async_save_devices(self) -> None:
         """Save devices to persistent storage."""
+        # Deduplicate devices (same device may be stored under both IP and MAC keys)
+        unique_devices = {id(d): d for d in self._devices.values()}
         data = {
-            "devices": [d.to_dict() for d in self._devices.values()],
+            "devices": [d.to_dict() for d in unique_devices.values()],
             "last_full_scan": (
                 self._last_full_scan.isoformat() if self._last_full_scan else None
             ),
@@ -134,8 +137,8 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
 
     def _should_full_scan(self) -> bool:
         """Determine if we should do a full scan."""
-        # Always full scan on first update
-        if self._last_full_scan is None:
+        # Always full scan on first update after startup
+        if self._needs_initial_scan:
             return True
 
         # Full scan every N updates
@@ -175,6 +178,7 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
         """Perform a full network scan."""
         _LOGGER.info("Performing full network scan")
         self._last_full_scan = datetime.now(timezone.utc)
+        self._needs_initial_scan = False
 
         discovered = await self._scanner.full_scan()
 
@@ -185,9 +189,22 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
             identifier = device.identifier
             found_identifiers.add(identifier)
 
-            if identifier in self._devices:
+            # Check if we have an existing device - by MAC, or by IP if no MAC match
+            existing = self._devices.get(identifier)
+            if not existing and device.mac_address:
+                # Check if we have this device stored by IP (before MAC was known)
+                ip_entry = self._devices.get(device.ip_address)
+                if ip_entry and ip_entry.mac_address is None:
+                    existing = ip_entry
+                    _LOGGER.info(
+                        "Device %s now has MAC address: %s",
+                        device.ip_address,
+                        device.mac_address,
+                    )
+                    found_identifiers.add(device.ip_address)  # Don't mark old IP as not responding
+
+            if existing:
                 # Update existing device
-                existing = self._devices[identifier]
                 existing.ip_address = device.ip_address
                 existing.mac_address = device.mac_address or existing.mac_address
                 existing.hostname = device.hostname or existing.hostname
@@ -195,6 +212,8 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
                 existing.last_seen = device.last_seen
                 existing.is_online = True
                 existing.failed_checks = 0
+                # Ensure device is accessible by current identifier (MAC if known)
+                self._devices[existing.identifier] = existing
             else:
                 # New device
                 self._devices[identifier] = device
