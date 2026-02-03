@@ -94,12 +94,18 @@ class DeviceBinarySensor(
 
         # Entity attributes
         self._attr_unique_id = f"{DOMAIN}_{device.identifier.replace(':', '')}"
-        self._attr_name = device.display_name
+        self._attr_name = "Connectivity"
 
-        # Link to the integration device
+        # Create a separate HA device for each network device
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, entry_id)},
+            "identifiers": {(DOMAIN, f"device_{device.identifier}")},
+            "name": device.display_name,
+            "manufacturer": device.vendor,
+            "model": "Network Device",
+            "via_device": (DOMAIN, entry_id),  # Link to main Network Monitor
         }
+        if device.mac_address:
+            self._attr_device_info["connections"] = {("mac", device.mac_address)}
 
     @property
     def _device(self) -> DeviceInfo | None:
@@ -137,7 +143,4 @@ class DeviceBinarySensor(
     @callback
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        # Update the name if hostname changed
-        if device := self._device:
-            self._attr_name = device.display_name
         super()._handle_coordinator_update()
