@@ -1,0 +1,12 @@
+{
+  "domain": "nwmon",
+  "name": "Network Monitor",
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/yourusername/nwmon",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/yourusername/nwmon/issues",
+  "requirements": ["icmplib>=3.0", "mac-vendor-lookup>=0.1.12"],
+  "version": "1.0.0"
+}

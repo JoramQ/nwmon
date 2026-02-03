@@ -1,0 +1,62 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Network Monitor Setup",
+        "description": "Enter the network ranges to scan (one per line, CIDR notation).\n\nExample: {example}",
+        "data": {
+          "networks": "Network ranges"
+        }
+      },
+      "settings": {
+        "title": "Scan Settings",
+        "description": "Configure how often to scan and when to mark devices as offline.",
+        "data": {
+          "full_scan_interval": "Full scan interval (minutes)",
+          "check_interval": "Quick check interval (minutes)",
+          "ping_timeout": "Ping timeout (seconds)",
+          "offline_threshold": "Offline threshold (failed checks)"
+        }
+      }
+    },
+    "error": {
+      "invalid_network": "Invalid network range. Use CIDR notation (e.g., 192.168.1.0/24)"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Network Monitor Options",
+        "description": "Update network ranges and scan settings.",
+        "data": {
+          "networks": "Network ranges",
+          "full_scan_interval": "Full scan interval (minutes)",
+          "check_interval": "Quick check interval (minutes)",
+          "ping_timeout": "Ping timeout (seconds)",
+          "offline_threshold": "Offline threshold (failed checks)"
+        }
+      }
+    },
+    "error": {
+      "invalid_network": "Invalid network range. Use CIDR notation (e.g., 192.168.1.0/24)"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "device": {
+        "name": "{hostname}"
+      }
+    },
+    "sensor": {
+      "devices_online": {
+        "name": "Devices Online"
+      },
+      "devices_total": {
+        "name": "Total Devices"
+      },
+      "last_full_scan": {
+        "name": "Last Full Scan"
+      }
+    }
+  }
+}
