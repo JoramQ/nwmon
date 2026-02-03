@@ -110,9 +110,11 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
 
             if "last_full_scan" in data and data["last_full_scan"]:
                 try:
-                    self._last_full_scan = datetime.fromisoformat(
-                        data["last_full_scan"]
-                    )
+                    loaded_dt = datetime.fromisoformat(data["last_full_scan"])
+                    # Ensure timezone awareness for timestamp sensor
+                    if loaded_dt.tzinfo is None:
+                        loaded_dt = loaded_dt.replace(tzinfo=timezone.utc)
+                    self._last_full_scan = loaded_dt
                 except ValueError:
                     pass
 
@@ -201,7 +203,7 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
 
         results = await self._scanner.check_devices(devices_to_check)
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         for device in devices_to_check:
             is_online = results.get(device.identifier, False)
             if is_online:

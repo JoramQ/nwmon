@@ -8,7 +8,7 @@ import logging
 import re
 import socket
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -32,8 +32,8 @@ class DeviceInfo:
     hostname: str | None = None
     vendor: str | None = None
     is_online: bool = True
-    first_seen: datetime = field(default_factory=datetime.now)
-    last_seen: datetime = field(default_factory=datetime.now)
+    first_seen: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_seen: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     failed_checks: int = 0
 
     @property
@@ -66,14 +66,21 @@ class DeviceInfo:
     @classmethod
     def from_dict(cls, data: dict) -> DeviceInfo:
         """Create from dictionary."""
+        first_seen = datetime.fromisoformat(data["first_seen"])
+        last_seen = datetime.fromisoformat(data["last_seen"])
+        # Ensure timezone awareness for datetimes loaded from old storage
+        if first_seen.tzinfo is None:
+            first_seen = first_seen.replace(tzinfo=timezone.utc)
+        if last_seen.tzinfo is None:
+            last_seen = last_seen.replace(tzinfo=timezone.utc)
         return cls(
             ip_address=data["ip_address"],
             mac_address=data.get("mac_address"),
             hostname=data.get("hostname"),
             vendor=data.get("vendor"),
             is_online=data.get("is_online", True),
-            first_seen=datetime.fromisoformat(data["first_seen"]),
-            last_seen=datetime.fromisoformat(data["last_seen"]),
+            first_seen=first_seen,
+            last_seen=last_seen,
             failed_checks=data.get("failed_checks", 0),
         )
 
@@ -239,7 +246,7 @@ class NetworkScanner:
         # Resolve vendor
         vendor = await self._resolve_vendor(mac) if mac else None
 
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         return DeviceInfo(
             ip_address=ip,
             mac_address=mac,
