@@ -22,6 +22,8 @@ from .const import (
     DEFAULT_OFFLINE_THRESHOLD,
     DEFAULT_PING_TIMEOUT,
     DOMAIN,
+    EVENT_DEVICE_OFFLINE,
+    EVENT_DEVICE_ONLINE,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
@@ -123,6 +125,29 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
 
             _LOGGER.info("Loaded %d devices from storage", len(self._devices))
 
+    def _build_event_data(self, device: DeviceInfo) -> dict[str, Any]:
+        """Build event data dictionary for a device."""
+        identifier_clean = device.identifier.replace(":", "").replace(".", "_")
+        entity_id = f"binary_sensor.{DOMAIN}_{identifier_clean}"
+
+        return {
+            "device_id": device.identifier,
+            "ip_address": device.ip_address,
+            "mac_address": device.mac_address,
+            "hostname": device.hostname,
+            "vendor": device.vendor,
+            "display_name": device.display_name,
+            "first_seen": device.first_seen.isoformat(),
+            "last_seen": device.last_seen.isoformat(),
+            "entity_id": entity_id,
+        }
+
+    def _fire_state_change_event(self, device: DeviceInfo, event_type: str) -> None:
+        """Fire an event for device state change."""
+        event_data = self._build_event_data(device)
+        self.hass.bus.async_fire(event_type, event_data)
+        _LOGGER.debug("Fired event %s for device %s", event_type, device.display_name)
+
     async def _async_save_devices(self) -> None:
         """Save devices to persistent storage."""
         # Deduplicate devices (same device may be stored under both IP and MAC keys)
@@ -205,6 +230,8 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
                     found_identifiers.add(device.ip_address)  # Don't mark old IP as not responding
 
             if existing:
+                # Track if device was offline before this update
+                was_offline = not existing.is_online
                 # Update existing device
                 existing.ip_address = device.ip_address
                 existing.mac_address = device.mac_address or existing.mac_address
@@ -215,6 +242,14 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
                 existing.failed_checks = 0
                 # Ensure device is accessible by current identifier (MAC if known)
                 self._devices[existing.identifier] = existing
+                # Fire online event if device came back online
+                if was_offline:
+                    _LOGGER.info(
+                        "Device came back online: %s (%s)",
+                        existing.display_name,
+                        existing.ip_address,
+                    )
+                    self._fire_state_change_event(existing, EVENT_DEVICE_ONLINE)
                 # Try to resolve hostname if still missing
                 if not existing.hostname:
                     devices_needing_hostname.append(existing)
@@ -281,6 +316,8 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
                     device.display_name,
                     device.ip_address,
                 )
+                # Fire offline event
+                self._fire_state_change_event(device, EVENT_DEVICE_OFFLINE)
         else:
             _LOGGER.debug(
                 "Device %s not responding (%d/%d)",

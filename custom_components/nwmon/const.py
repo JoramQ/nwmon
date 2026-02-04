@@ -32,3 +32,7 @@ ATTR_FAILED_CHECKS = "failed_checks"
 # Storage
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}_devices"
+
+# Event names
+EVENT_DEVICE_OFFLINE = f"{DOMAIN}_device_offline"
+EVENT_DEVICE_ONLINE = f"{DOMAIN}_device_online"
