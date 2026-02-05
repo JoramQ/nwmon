@@ -35,6 +35,9 @@ class DeviceInfo:
     first_seen: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     last_seen: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     failed_checks: int = 0
+    last_latency_ms: float | None = None
+    nickname: str | None = None
+    watched: bool = False
 
     @property
     def identifier(self) -> str:
@@ -44,6 +47,8 @@ class DeviceInfo:
     @property
     def display_name(self) -> str:
         """Return display name for this device."""
+        if self.nickname:
+            return self.nickname
         if self.hostname:
             return self.hostname
         if self.mac_address:
@@ -61,6 +66,9 @@ class DeviceInfo:
             "first_seen": self.first_seen.isoformat(),
             "last_seen": self.last_seen.isoformat(),
             "failed_checks": self.failed_checks,
+            "last_latency_ms": self.last_latency_ms,
+            "nickname": self.nickname,
+            "watched": self.watched,
         }
 
     @classmethod
@@ -82,6 +90,9 @@ class DeviceInfo:
             first_seen=first_seen,
             last_seen=last_seen,
             failed_checks=data.get("failed_checks", 0),
+            last_latency_ms=data.get("last_latency_ms"),
+            nickname=data.get("nickname"),
+            watched=data.get("watched", False),
         )
 
 
@@ -203,8 +214,8 @@ class NetworkScanner:
         except Exception:
             return None
 
-    async def _ping_host(self, ip: str) -> bool:
-        """Ping a single host and return True if online."""
+    async def _ping_host(self, ip: str) -> tuple[bool, float | None]:
+        """Ping a single host and return (is_alive, latency_ms)."""
         try:
             result = await async_ping(
                 ip,
@@ -212,9 +223,9 @@ class NetworkScanner:
                 timeout=self._ping_timeout,
                 privileged=False,  # Use unprivileged sockets if available
             )
-            return result.is_alive
+            return (result.is_alive, round(result.avg_rtt, 2) if result.is_alive else None)
         except NameLookupError:
-            return False
+            return (False, None)
         except OSError as err:
             # May need privileged mode
             _LOGGER.debug("Ping failed for %s (may need privileges): %s", ip, err)
@@ -225,17 +236,17 @@ class NetworkScanner:
                     timeout=self._ping_timeout,
                     privileged=True,
                 )
-                return result.is_alive
+                return (result.is_alive, round(result.avg_rtt, 2) if result.is_alive else None)
             except Exception as err2:
                 _LOGGER.debug("Privileged ping also failed for %s: %s", ip, err2)
-                return False
+                return (False, None)
         except Exception as err:
             _LOGGER.debug("Unexpected ping error for %s: %s", ip, err)
-            return False
+            return (False, None)
 
     async def _scan_host(self, ip: str) -> DeviceInfo | None:
         """Scan a single host and return DeviceInfo if online."""
-        is_online = await self._ping_host(ip)
+        is_online, latency = await self._ping_host(ip)
         if not is_online:
             return None
 
@@ -258,6 +269,7 @@ class NetworkScanner:
             first_seen=now,
             last_seen=now,
             failed_checks=0,
+            last_latency_ms=latency,
         )
 
     async def full_scan(self) -> list[DeviceInfo]:
@@ -305,10 +317,12 @@ class NetworkScanner:
 
         return devices
 
-    async def check_devices(self, devices: list[DeviceInfo]) -> dict[str, bool]:
+    async def check_devices(
+        self, devices: list[DeviceInfo]
+    ) -> dict[str, tuple[bool, float | None]]:
         """Quick check if known devices are still online.
 
-        Returns dict mapping device identifier to online status.
+        Returns dict mapping device identifier to (online_status, latency_ms).
         """
         if not devices:
             return {}
@@ -317,23 +331,25 @@ class NetworkScanner:
 
         semaphore = asyncio.Semaphore(self._max_concurrent)
 
-        async def ping_with_limit(device: DeviceInfo) -> tuple[str, bool]:
+        async def ping_with_limit(
+            device: DeviceInfo,
+        ) -> tuple[str, bool, float | None]:
             async with semaphore:
-                is_online = await self._ping_host(device.ip_address)
-                return device.identifier, is_online
+                is_online, latency = await self._ping_host(device.ip_address)
+                return device.identifier, is_online, latency
 
         results = await asyncio.gather(
             *[ping_with_limit(d) for d in devices],
             return_exceptions=True,
         )
 
-        status: dict[str, bool] = {}
+        status: dict[str, tuple[bool, float | None]] = {}
         for result in results:
             if isinstance(result, tuple):
-                identifier, is_online = result
-                status[identifier] = is_online
+                identifier, is_online, latency = result
+                status[identifier] = (is_online, latency)
 
-        online_count = sum(1 for v in status.values() if v)
+        online_count = sum(1 for alive, _ in status.values() if alive)
         _LOGGER.debug("Quick check complete: %d/%d online", online_count, len(devices))
 
         return status

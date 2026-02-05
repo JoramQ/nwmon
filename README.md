@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/logo.png" alt="nwmon logo">
+</p>
+
 # Network Monitor for Home Assistant
 
 A Home Assistant integration that discovers and monitors devices on your local network. Performs periodic network scans to detect devices and tracks their online/offline status.

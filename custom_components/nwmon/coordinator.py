@@ -24,6 +24,7 @@ from .const import (
     DOMAIN,
     EVENT_DEVICE_OFFLINE,
     EVENT_DEVICE_ONLINE,
+    EVENT_WATCHED_DEVICE_OFFLINE,
     STORAGE_KEY,
     STORAGE_VERSION,
 )
@@ -140,6 +141,9 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
             "first_seen": device.first_seen.isoformat(),
             "last_seen": device.last_seen.isoformat(),
             "entity_id": entity_id,
+            "latency_ms": device.last_latency_ms,
+            "nickname": device.nickname,
+            "watched": device.watched,
         }
 
     def _fire_state_change_event(self, device: DeviceInfo, event_type: str) -> None:
@@ -147,6 +151,9 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
         event_data = self._build_event_data(device)
         self.hass.bus.async_fire(event_type, event_data)
         _LOGGER.debug("Fired event %s for device %s", event_type, device.display_name)
+
+        if device.watched and event_type == EVENT_DEVICE_OFFLINE:
+            self.hass.bus.async_fire(EVENT_WATCHED_DEVICE_OFFLINE, event_data)
 
     async def _async_save_devices(self) -> None:
         """Save devices to persistent storage."""
@@ -240,6 +247,7 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
                 existing.last_seen = device.last_seen
                 existing.is_online = True
                 existing.failed_checks = 0
+                existing.last_latency_ms = device.last_latency_ms
                 # Ensure device is accessible by current identifier (MAC if known)
                 self._devices[existing.identifier] = existing
                 # Fire online event if device came back online
@@ -297,10 +305,12 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
 
         now = datetime.now(timezone.utc)
         for device in devices_to_check:
-            is_online = results.get(device.identifier, False)
+            result = results.get(device.identifier, (False, None))
+            is_online, latency = result
             if is_online:
                 device.last_seen = now
                 device.failed_checks = 0
+                device.last_latency_ms = latency
             else:
                 self._handle_device_not_responding(device)
 
@@ -311,6 +321,7 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
         if device.failed_checks >= self._offline_threshold:
             if device.is_online:
                 device.is_online = False
+                device.last_latency_ms = None
                 _LOGGER.info(
                     "Device went offline: %s (%s)",
                     device.display_name,
@@ -339,6 +350,27 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
             await self._async_save_devices()
             return True
         return False
+
+    async def async_configure_device(
+        self,
+        identifier: str,
+        nickname: str | None = None,
+        watched: bool | None = None,
+    ) -> bool:
+        """Configure a device's nickname and/or watched status."""
+        device = self._devices.get(identifier)
+        if device is None:
+            return False
+
+        if nickname is not None:
+            # Empty string clears the nickname
+            device.nickname = nickname if nickname else None
+        if watched is not None:
+            device.watched = watched
+
+        await self._async_save_devices()
+        self.async_set_updated_data(self._devices)
+        return True
 
     async def async_trigger_full_scan(self) -> None:
         """Trigger an immediate full scan."""

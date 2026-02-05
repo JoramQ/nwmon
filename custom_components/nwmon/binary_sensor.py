@@ -19,8 +19,11 @@ from .const import (
     ATTR_HOSTNAME,
     ATTR_IP_ADDRESS,
     ATTR_LAST_SEEN,
+    ATTR_LATENCY,
     ATTR_MAC_ADDRESS,
+    ATTR_NICKNAME,
     ATTR_VENDOR,
+    ATTR_WATCHED,
     DOMAIN,
 )
 from .coordinator import NetworkMonitorCoordinator
@@ -138,6 +141,9 @@ class DeviceBinarySensor(
             ATTR_FIRST_SEEN: device.first_seen.isoformat(),
             ATTR_LAST_SEEN: device.last_seen.isoformat(),
             ATTR_FAILED_CHECKS: device.failed_checks,
+            ATTR_LATENCY: device.last_latency_ms,
+            ATTR_NICKNAME: device.nickname,
+            ATTR_WATCHED: device.watched,
         }
 
     @callback

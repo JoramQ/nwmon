@@ -1,0 +1,35 @@
+full_scan:
+  name: Full Scan
+  description: Trigger a full network scan to discover new devices.
+
+forget_device:
+  name: Forget Device
+  description: Remove a device from tracking.
+  fields:
+    device_id:
+      name: Device ID
+      description: The identifier (MAC or IP) of the device to forget.
+      required: true
+      selector:
+        text:
+
+configure_device:
+  name: Configure Device
+  description: Set a nickname and/or watched status for a device.
+  fields:
+    device_id:
+      name: Device ID
+      description: The identifier (MAC or IP) of the device to configure.
+      required: true
+      selector:
+        text:
+    nickname:
+      name: Nickname
+      description: A friendly name for the device. Use an empty string to clear.
+      selector:
+        text:
+    watched:
+      name: Watched
+      description: Whether to fire a priority event when this device goes offline.
+      selector:
+        boolean:

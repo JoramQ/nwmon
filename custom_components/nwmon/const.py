@@ -33,6 +33,20 @@ ATTR_FAILED_CHECKS = "failed_checks"
 STORAGE_VERSION = 1
 STORAGE_KEY = f"{DOMAIN}_devices"
 
+# New attributes
+ATTR_LATENCY = "latency_ms"
+ATTR_NICKNAME = "nickname"
+ATTR_WATCHED = "watched"
+
+# Service names
+SERVICE_FULL_SCAN = "full_scan"
+SERVICE_FORGET_DEVICE = "forget_device"
+SERVICE_CONFIGURE_DEVICE = "configure_device"
+
+# Service parameter
+ATTR_DEVICE_ID = "device_id"
+
 # Event names
 EVENT_DEVICE_OFFLINE = f"{DOMAIN}_device_offline"
 EVENT_DEVICE_ONLINE = f"{DOMAIN}_device_online"
+EVENT_WATCHED_DEVICE_OFFLINE = f"{DOMAIN}_watched_device_offline"
