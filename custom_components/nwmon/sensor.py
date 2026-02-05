@@ -52,9 +52,9 @@ async def async_setup_entry(
         """Add latency sensor entities for newly discovered devices."""
         new_entities: list[DeviceLatencySensor] = []
 
-        for identifier, device in coordinator.devices.items():
-            if identifier not in known_latency_entities:
-                known_latency_entities.add(identifier)
+        for device in coordinator.devices.values():
+            if device.identifier not in known_latency_entities:
+                known_latency_entities.add(device.identifier)
                 new_entities.append(
                     DeviceLatencySensor(coordinator, entry.entry_id, device)
                 )

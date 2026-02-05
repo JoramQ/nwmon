@@ -55,10 +55,10 @@ async def async_setup_entry(
             coordinator.last_update_success,
         )
 
-        for identifier, device in coordinator.devices.items():
-            if identifier not in known_entities:
-                _LOGGER.debug("Creating entity for device: %s (%s)", identifier, device.display_name)
-                known_entities.add(identifier)
+        for device in coordinator.devices.values():
+            if device.identifier not in known_entities:
+                _LOGGER.debug("Creating entity for device: %s (%s)", device.identifier, device.display_name)
+                known_entities.add(device.identifier)
                 new_entities.append(
                     DeviceBinarySensor(coordinator, entry.entry_id, device)
                 )

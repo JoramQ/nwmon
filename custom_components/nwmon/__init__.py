@@ -94,8 +94,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             """Handle forget_device service call."""
             device_id = call.data[ATTR_DEVICE_ID]
             for coord in _get_coordinators(hass):
-                if await coord.async_forget_device(device_id):
+                resolved = coord.resolve_device_id(device_id)
+                if resolved and await coord.async_forget_device(resolved):
                     return
+            _LOGGER.warning(
+                "forget_device: device_id '%s' not found in any instance", device_id
+            )
 
         async def handle_configure_device(call: ServiceCall) -> None:
             """Handle configure_device service call."""
@@ -103,10 +107,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             nickname = call.data.get(ATTR_NICKNAME)
             watched = call.data.get(ATTR_WATCHED)
             for coord in _get_coordinators(hass):
-                if await coord.async_configure_device(
-                    device_id, nickname=nickname, watched=watched
+                resolved = coord.resolve_device_id(device_id)
+                if resolved and await coord.async_configure_device(
+                    resolved, nickname=nickname, watched=watched
                 ):
                     return
+            _LOGGER.warning(
+                "configure_device: device_id '%s' not found in any instance",
+                device_id,
+            )
 
         hass.services.async_register(
             DOMAIN, SERVICE_FULL_SCAN, handle_full_scan, SERVICE_FULL_SCAN_SCHEMA

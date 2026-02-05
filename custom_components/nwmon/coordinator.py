@@ -342,6 +342,31 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
         """Get a device by identifier."""
         return self._devices.get(identifier)
 
+    @callback
+    def resolve_device_id(self, device_id: str) -> str | None:
+        """Resolve a user-provided device_id to a known device key.
+
+        Tries exact match first, then matches by MAC or IP on each device.
+        Accepts formats with or without colons/dots (e.g. aabbccddeeff).
+        """
+        # Exact match on dict key
+        if device_id in self._devices:
+            return device_id
+
+        # Normalize: lowercase, strip colons/dashes/dots
+        normalized = device_id.lower().replace(":", "").replace("-", "").replace(".", "")
+
+        for key, device in self._devices.items():
+            if device.mac_address:
+                mac_clean = device.mac_address.lower().replace(":", "").replace("-", "")
+                if normalized == mac_clean:
+                    return key
+            ip_clean = device.ip_address.replace(".", "")
+            if normalized == ip_clean or device_id == device.ip_address:
+                return key
+
+        return None
+
     async def async_forget_device(self, identifier: str) -> bool:
         """Remove a device from tracking."""
         if identifier in self._devices:
