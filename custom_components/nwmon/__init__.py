@@ -12,13 +12,12 @@ from homeassistant.helpers import device_registry as dr
 
 from .const import (
     ATTR_DEVICE_ID,
-    ATTR_NICKNAME,
     ATTR_WATCHED,
     DOMAIN,
     PLATFORMS,
-    SERVICE_CONFIGURE_DEVICE,
     SERVICE_FORGET_DEVICE,
     SERVICE_FULL_SCAN,
+    SERVICE_WATCH_DEVICE,
 )
 from .coordinator import NetworkMonitorCoordinator
 
@@ -28,11 +27,10 @@ SERVICE_FULL_SCAN_SCHEMA = vol.Schema({})
 SERVICE_FORGET_DEVICE_SCHEMA = vol.Schema(
     {vol.Required(ATTR_DEVICE_ID): str}
 )
-SERVICE_CONFIGURE_DEVICE_SCHEMA = vol.Schema(
+SERVICE_WATCH_DEVICE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_DEVICE_ID): str,
-        vol.Optional(ATTR_NICKNAME): str,
-        vol.Optional(ATTR_WATCHED): bool,
+        vol.Required(ATTR_WATCHED): bool,
     }
 )
 
@@ -41,8 +39,12 @@ def _get_coordinators(hass: HomeAssistant) -> list[NetworkMonitorCoordinator]:
     """Get all active coordinators."""
     coordinators: list[NetworkMonitorCoordinator] = []
     for entry in hass.config_entries.async_entries(DOMAIN):
-        if hasattr(entry, "runtime_data") and entry.runtime_data:
-            coordinators.append(entry.runtime_data)
+        try:
+            coord = entry.runtime_data
+        except (AttributeError, RuntimeError):
+            continue
+        if isinstance(coord, NetworkMonitorCoordinator):
+            coordinators.append(coord)
     return coordinators
 
 
@@ -101,19 +103,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "forget_device: device_id '%s' not found in any instance", device_id
             )
 
-        async def handle_configure_device(call: ServiceCall) -> None:
-            """Handle configure_device service call."""
+        async def handle_watch_device(call: ServiceCall) -> None:
+            """Handle watch_device service call."""
             device_id = call.data[ATTR_DEVICE_ID]
-            nickname = call.data.get(ATTR_NICKNAME)
-            watched = call.data.get(ATTR_WATCHED)
+            watched = call.data[ATTR_WATCHED]
             for coord in _get_coordinators(hass):
                 resolved = coord.resolve_device_id(device_id)
-                if resolved and await coord.async_configure_device(
-                    resolved, nickname=nickname, watched=watched
+                if resolved and await coord.async_watch_device(
+                    resolved, watched=watched
                 ):
                     return
             _LOGGER.warning(
-                "configure_device: device_id '%s' not found in any instance",
+                "watch_device: device_id '%s' not found in any instance",
                 device_id,
             )
 
@@ -128,9 +129,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         hass.services.async_register(
             DOMAIN,
-            SERVICE_CONFIGURE_DEVICE,
-            handle_configure_device,
-            SERVICE_CONFIGURE_DEVICE_SCHEMA,
+            SERVICE_WATCH_DEVICE,
+            handle_watch_device,
+            SERVICE_WATCH_DEVICE_SCHEMA,
         )
 
     return True
@@ -150,7 +151,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not remaining:
             hass.services.async_remove(DOMAIN, SERVICE_FULL_SCAN)
             hass.services.async_remove(DOMAIN, SERVICE_FORGET_DEVICE)
-            hass.services.async_remove(DOMAIN, SERVICE_CONFIGURE_DEVICE)
+            hass.services.async_remove(DOMAIN, SERVICE_WATCH_DEVICE)
 
     return unload_ok
 

@@ -41,7 +41,7 @@ ATTR_WATCHED = "watched"
 # Service names
 SERVICE_FULL_SCAN = "full_scan"
 SERVICE_FORGET_DEVICE = "forget_device"
-SERVICE_CONFIGURE_DEVICE = "configure_device"
+SERVICE_WATCH_DEVICE = "watch_device"
 
 # Service parameter
 ATTR_DEVICE_ID = "device_id"

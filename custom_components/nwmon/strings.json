@@ -77,17 +77,13 @@
         }
       }
     },
-    "configure_device": {
-      "name": "Configure Device",
-      "description": "Set a nickname and/or watched status for a device.",
+    "watch_device": {
+      "name": "Watch Device",
+      "description": "Set whether to fire a priority event when this device goes offline.",
       "fields": {
         "device_id": {
           "name": "Device ID",
-          "description": "The identifier (MAC or IP) of the device to configure."
-        },
-        "nickname": {
-          "name": "Nickname",
-          "description": "A friendly name for the device. Use an empty string to clear."
+          "description": "The identifier (MAC or IP) of the device to watch."
         },
         "watched": {
           "name": "Watched",

@@ -389,22 +389,17 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
             return True
         return False
 
-    async def async_configure_device(
+    async def async_watch_device(
         self,
         identifier: str,
-        nickname: str | None = None,
-        watched: bool | None = None,
+        watched: bool,
     ) -> bool:
-        """Configure a device's nickname and/or watched status."""
+        """Set the watched status for a device."""
         device = self._devices.get(identifier)
         if device is None:
             return False
 
-        if nickname is not None:
-            # Empty string clears the nickname
-            device.nickname = nickname if nickname else None
-        if watched is not None:
-            device.watched = watched
+        device.watched = watched
 
         await self._async_save_devices()
         self.async_set_updated_data(self._devices)
