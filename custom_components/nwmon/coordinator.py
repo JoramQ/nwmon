@@ -8,6 +8,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -234,6 +235,8 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
                         device.ip_address,
                         device.mac_address,
                     )
+                    # Remove the stale IP key — device will be re-stored under MAC below
+                    del self._devices[device.ip_address]
                     found_identifiers.add(device.ip_address)  # Don't mark old IP as not responding
 
             if existing:
@@ -372,7 +375,17 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
         if identifier in self._devices:
             device = self._devices.pop(identifier)
             _LOGGER.info("Forgot device: %s", device.display_name)
+
+            # Remove the HA device registry entry (cascades to entity registry)
+            device_registry = dr.async_get(self.hass)
+            ha_device = device_registry.async_get_device(
+                identifiers={(DOMAIN, f"device_{identifier}")}
+            )
+            if ha_device:
+                device_registry.async_remove_device(ha_device.id)
+
             await self._async_save_devices()
+            self.async_set_updated_data(self._devices)
             return True
         return False
 

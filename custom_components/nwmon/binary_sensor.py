@@ -99,16 +99,20 @@ class DeviceBinarySensor(
         self._attr_unique_id = f"{DOMAIN}_{device.identifier.replace(':', '')}"
         self._attr_name = "Connectivity"
 
-        # Create a separate HA device for each network device
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"device_{device.identifier}")},
-            "name": device.display_name,
-            "manufacturer": device.vendor,
+    @property
+    def device_info(self) -> dict | None:
+        """Return device info, updated dynamically to reflect nickname changes."""
+        device = self.coordinator.async_get_device(self._device_identifier)
+        info = {
+            "identifiers": {(DOMAIN, f"device_{self._device_identifier}")},
+            "name": device.display_name if device else self._device_identifier,
+            "manufacturer": device.vendor if device else None,
             "model": "Network Device",
-            "via_device": (DOMAIN, entry_id),  # Link to main Network Monitor
+            "via_device": (DOMAIN, self._entry_id),
         }
-        if device.mac_address:
-            self._attr_device_info["connections"] = {("mac", device.mac_address)}
+        if device and device.mac_address:
+            info["connections"] = {("mac", device.mac_address)}
+        return info
 
     @property
     def _device(self) -> DeviceInfo | None:
