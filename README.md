@@ -12,9 +12,8 @@ A Home Assistant integration that discovers and monitors devices on your local n
 - **Dual Scan Intervals**: Full network scans (default: hourly) and quick device checks (default: every minute)
 - **Extended Device Info**: Tracks IP address, MAC address, hostname, and vendor
 - **Ping Latency**: Captures round-trip time for each device and exposes it as a per-device sensor
-- **Device Nicknames**: Assign friendly names to devices via a service call
 - **Watched Devices**: Mark important devices as "watched" to get a dedicated event when they go offline
-- **HA Services**: Trigger scans, forget devices, and configure devices from automations or Developer Tools
+- **HA Services**: Trigger scans, forget devices, and watch devices from automations or Developer Tools
 - **Configurable Offline Threshold**: Mark devices offline only after N consecutive failed checks
 - **Persistent Storage**: Remembers discovered devices (including nicknames and watched status) across Home Assistant restarts
 - **Multi-VLAN Support**: Add the integration multiple times for different network ranges — services automatically resolve which instance owns each device
@@ -112,19 +111,17 @@ data:
   device_id: "aa:bb:cc:dd:ee:ff"
 ```
 
-### `nwmon.configure_device`
+### `nwmon.watch_device`
 
-Set a nickname and/or watched status on a device. The service automatically finds the correct integration instance.
+Set the watched status on a device. The service automatically finds the correct integration instance.
 
 ```yaml
-service: nwmon.configure_device
+service: nwmon.watch_device
 data:
   device_id: "aa:bb:cc:dd:ee:ff"
-  nickname: "Living Room TV"
   watched: true
 ```
 
-- **nickname**: Sets the device display name. Pass an empty string (`""`) to clear it.
 - **watched**: When `true`, the device fires an additional `nwmon_watched_device_offline` event when it goes offline, useful for priority alerting.
 
 ## Events

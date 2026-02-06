@@ -2,7 +2,7 @@
 
 ## 1. HA Services
 
-- [ ] **Developer Tools > Services** — confirm `nwmon.full_scan`, `nwmon.forget_device`, and `nwmon.configure_device` appear with field descriptions
+- [ ] **Developer Tools > Services** — confirm `nwmon.full_scan`, `nwmon.forget_device`, and `nwmon.watch_device` appear with field descriptions
 - [ ] Call `nwmon.full_scan` — verify a scan runs and any new devices appear as entities
 - [ ] Call `nwmon.forget_device` with a known `device_id` (MAC or IP) — verify the device's entities become unavailable
 - [ ] Reload the integration — confirm services still registered; unload all entries — confirm services are removed
@@ -14,11 +14,10 @@
 - [ ] Take a device offline (unplug or block) — wait for the offline threshold — confirm the latency sensor goes to **Unknown** and the binary sensor `latency_ms` attribute becomes `None`
 - [ ] Bring it back online — confirm latency repopulates on the next check
 
-## 3. Device Nicknames & Watched
+## 3. Watched Devices
 
-- [ ] Call `nwmon.configure_device` with `device_id` and `nickname: "My Server"` — verify `display_name` updates and the binary sensor `nickname` attribute reflects the new name
-- [ ] Call again with `nickname: ""` — verify nickname clears and display name falls back to hostname/MAC/IP
-- [ ] Call with `watched: true` — verify the binary sensor `watched` attribute is `true`
+- [ ] Call `nwmon.watch_device` with `device_id` and `watched: true` — verify the binary sensor `watched` attribute is `true`
 - [ ] Take that watched device offline — listen in **Developer Tools > Events** for both `nwmon_device_offline` and `nwmon_watched_device_offline` firing
 - [ ] Take a non-watched device offline — confirm only `nwmon_device_offline` fires (no watched event)
-- [ ] Restart HA — confirm nickname, watched, and latency values persist from storage
+- [ ] Call `nwmon.watch_device` with `watched: false` — verify the device is no longer watched
+- [ ] Restart HA — confirm watched and latency values persist from storage
