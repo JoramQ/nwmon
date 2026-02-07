@@ -1,4 +1,4 @@
-# Test Plan: Services, Ping Latency, Device Nicknames/Watched
+# Test Plan: Services, Ping Latency, Watched Devices
 
 ## 1. HA Services
 

@@ -21,7 +21,6 @@ from .const import (
     ATTR_LAST_SEEN,
     ATTR_LATENCY,
     ATTR_MAC_ADDRESS,
-    ATTR_NICKNAME,
     ATTR_VENDOR,
     ATTR_WATCHED,
     DOMAIN,
@@ -101,7 +100,7 @@ class DeviceBinarySensor(
 
     @property
     def device_info(self) -> dict | None:
-        """Return device info, updated dynamically to reflect nickname changes."""
+        """Return device info."""
         device = self.coordinator.async_get_device(self._device_identifier)
         info = {
             "identifiers": {(DOMAIN, f"device_{self._device_identifier}")},
@@ -146,7 +145,6 @@ class DeviceBinarySensor(
             ATTR_LAST_SEEN: device.last_seen.isoformat(),
             ATTR_FAILED_CHECKS: device.failed_checks,
             ATTR_LATENCY: device.last_latency_ms,
-            ATTR_NICKNAME: device.nickname,
             ATTR_WATCHED: device.watched,
         }
 

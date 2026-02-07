@@ -35,7 +35,6 @@ STORAGE_KEY = f"{DOMAIN}_devices"
 
 # New attributes
 ATTR_LATENCY = "latency_ms"
-ATTR_NICKNAME = "nickname"
 ATTR_WATCHED = "watched"
 
 # Service names

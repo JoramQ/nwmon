@@ -15,7 +15,7 @@ A Home Assistant integration that discovers and monitors devices on your local n
 - **Watched Devices**: Mark important devices as "watched" to get a dedicated event when they go offline
 - **HA Services**: Trigger scans, forget devices, and watch devices from automations or Developer Tools
 - **Configurable Offline Threshold**: Mark devices offline only after N consecutive failed checks
-- **Persistent Storage**: Remembers discovered devices (including nicknames and watched status) across Home Assistant restarts
+- **Persistent Storage**: Remembers discovered devices (including watched status) across Home Assistant restarts
 - **Multi-VLAN Support**: Add the integration multiple times for different network ranges — services automatically resolve which instance owns each device
 - **UI Configuration**: Set up entirely through the Home Assistant UI
 
@@ -71,7 +71,7 @@ Summary sensors for overall network status:
 
 Each discovered network device gets its own device entry with:
 
-- **Device name**: Nickname if set, otherwise hostname (or MAC/IP if hostname unavailable)
+- **Device name**: Hostname (or MAC/IP if hostname unavailable)
 - **Manufacturer**: Vendor name (from MAC address lookup)
 - **Connectivity sensor**: `on` (online) / `off` (offline)
 - **Ping Latency sensor**: Round-trip time in milliseconds (shown as "Unknown" when offline)
@@ -84,7 +84,6 @@ Each discovered network device gets its own device entry with:
   - `last_seen`: Last time device was online
   - `failed_checks`: Current consecutive failed check count
   - `latency_ms`: Last ping round-trip time in milliseconds
-  - `nickname`: User-assigned friendly name (if set)
   - `watched`: Whether this device fires priority offline events
 
 Devices are linked to the main Network Monitor via the "via_device" relationship, creating a clear hierarchy on the integration page.

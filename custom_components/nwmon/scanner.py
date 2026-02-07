@@ -36,7 +36,6 @@ class DeviceInfo:
     last_seen: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     failed_checks: int = 0
     last_latency_ms: float | None = None
-    nickname: str | None = None
     watched: bool = False
 
     @property
@@ -47,8 +46,6 @@ class DeviceInfo:
     @property
     def display_name(self) -> str:
         """Return display name for this device."""
-        if self.nickname:
-            return self.nickname
         if self.hostname:
             return self.hostname
         if self.mac_address:
@@ -67,7 +64,6 @@ class DeviceInfo:
             "last_seen": self.last_seen.isoformat(),
             "failed_checks": self.failed_checks,
             "last_latency_ms": self.last_latency_ms,
-            "nickname": self.nickname,
             "watched": self.watched,
         }
 
@@ -91,7 +87,6 @@ class DeviceInfo:
             last_seen=last_seen,
             failed_checks=data.get("failed_checks", 0),
             last_latency_ms=data.get("last_latency_ms"),
-            nickname=data.get("nickname"),
             watched=data.get("watched", False),
         )
 

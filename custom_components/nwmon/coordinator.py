@@ -143,7 +143,6 @@ class NetworkMonitorCoordinator(DataUpdateCoordinator[dict[str, DeviceInfo]]):
             "last_seen": device.last_seen.isoformat(),
             "entity_id": entity_id,
             "latency_ms": device.last_latency_ms,
-            "nickname": device.nickname,
             "watched": device.watched,
         }
 
