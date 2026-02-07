@@ -89,6 +89,19 @@ Each discovered network device gets its own device entry with:
 
 Devices are linked to the main Network Monitor via the "via_device" relationship, creating a clear hierarchy on the integration page.
 
+### Device Identification and Cross-Integration Linking
+
+Each discovered device is identified internally by its **MAC address** when available, falling back to its **IP address** if not.
+
+When a MAC address is available, the integration registers it as a **connection** in Home Assistant's device registry. HA uses these connections to automatically **link devices across integrations** — for example, if your router integration (UniFi, Fritz!Box, etc.) already created a device for the same MAC address, HA will merge both under one device entry. This means entities from both integrations appear together on a single device page.
+
+**MAC addresses are resolved from the system's ARP cache**, which only contains entries for devices on the same Layer 2 (broadcast) network segment as the Home Assistant host. This means:
+
+- **Same subnet**: Devices get a MAC address → vendor identification works, cross-integration linking works, and the device is identified persistently even if its IP changes.
+- **Remote subnet (different VLAN/routed network)**: The ARP table only contains the **router's MAC**, not the remote device's MAC. These devices will be tracked by **IP address only** — no vendor info, no cross-integration linking, and the device identity is tied to its IP. If the IP changes (e.g., DHCP renewal), it will appear as a new device.
+
+This is an inherent limitation of ARP, not specific to this integration. If you use the multi-VLAN feature to scan remote subnets, keep in mind that those devices will have reduced functionality compared to devices on the local network.
+
 ## Services
 
 All services are available in **Developer Tools > Services** and can be used in automations.
@@ -201,8 +214,9 @@ automation:
 
 ### MAC addresses not showing
 
-- MAC addresses are only available for devices on the same network segment
+- MAC addresses are only available for devices on the same Layer 2 network segment — see [Device Identification and Cross-Integration Linking](#device-identification-and-cross-integration-linking) above
 - The ARP cache is used, so devices must have recently communicated with the HA host
+- ARP entries can expire; the integration will backfill the MAC on subsequent scans if the entry reappears
 
 ### Permission errors
 
